@@ -1,0 +1,12 @@
+- name: Redeploy Transformers
+  hosts: all
+  become: yes
+  tasks:
+    - name: Removing Previous Transformers Services
+      shell: docker service rm vizix_externaltransformer vizix_internaltransformer
+      args:
+        chdir: /opt/vizix/
+    - name: Start new Services
+      shell: docker stack deploy vizix --with-registry-auth -c transformer.yaml
+      args:
+        chdir: /opt/vizix/
