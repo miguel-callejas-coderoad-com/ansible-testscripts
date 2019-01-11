@@ -3,7 +3,7 @@
   become: yes
   tasks:
     - name: Removing Previous Transformers Services
-      shell: docker service rm vizix_externaltransformer vizix_internaltransformer
+      shell: docker service rm vizix_externaltransformer
       args:
         chdir: /opt/vizix/
     - name: Start new Services
