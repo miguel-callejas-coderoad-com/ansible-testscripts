@@ -1,0 +1,34 @@
+- name: Redeploy Transformers
+  hosts: all
+  become: yes
+  tasks:
+    - name: Removing Previous Transformers Services
+      shell: docker service rm vizix_externaltransformer
+      args:
+        chdir: /opt/vizix/
+    - name: Start new Services
+      shell: docker stack deploy vizix --with-registry-auth -c transformer.yaml
+      args:
+        chdir: /opt/vizix/
+    - name: Wait until external transformer is up
+      shell: docker service ls | grep external
+      register: tools_status
+      until: tools_status.stdout.find('1/1') != -1
+      delay: 30
+      retries: 20
+    - pause:
+        minutes: 10
+    - name: Restarting internal transformer
+      shell: docker service scale vizix_internaltransformer=0
+      args:
+        chdir: /opt/vizix/
+    - name: Starting internal transformer
+      shell: docker service scale vizix_internaltransformer=1
+      args:
+        chdir: /opt/vizix/
+    - name: Wait until internal transformer is up
+      shell: docker service ls | grep internal
+      register: tools_status
+      until: tools_status.stdout.find('1/1') != -1
+      delay: 30
+      retries: 20
