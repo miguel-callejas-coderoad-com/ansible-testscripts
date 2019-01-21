@@ -1,0 +1,12 @@
+- name: Redeploy Services
+  hosts: all
+  become: yes
+  tasks:
+    - name: Removing Previous Services Container
+      shell: docker service rm vizix_services
+      args:
+        chdir: /opt/vizix/
+    - name: Start new Services
+      shell: docker stack deploy vizix --with-registry-auth -c services.yaml
+      args:
+        chdir: /opt/vizix/

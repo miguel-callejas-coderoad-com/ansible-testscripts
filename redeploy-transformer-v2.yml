@@ -2,11 +2,32 @@
   hosts: all
   become: yes
   tasks:
+    - name: "Check if all services are up"
+      shell: docker service ps {{item}}
+      with_items:
+        - vizix_externaltransformer
+        - vizix_internaltransformer
+        - vizix_proxySCX
+        - vizix_reverse-proxy-devices
+
+    - name: Stop internal transformer
+      shell: docker service scale vizix_internaltransformer=0
+      args:
+        chdir: /opt/vizix/
+    - name: Stop proxySCX
+      shell: docker service scale vizix_proxySCX=0
+      args:
+        chdir: /opt/vizix/
+    - name: Stop reverse-proxy-devices
+      shell: docker service scale vizix_reverse-proxy-devices=0
+      args:
+        chdir: /opt/vizix/
     - name: Removing Previous Transformers Services
       shell: docker service rm vizix_externaltransformer
       args:
         chdir: /opt/vizix/
-    - name: Start new Services
+
+    - name: Start new external transformer
       shell: docker stack deploy vizix --with-registry-auth -c transformer.yaml
       args:
         chdir: /opt/vizix/
@@ -16,19 +37,37 @@
       until: tools_status.stdout.find('1/1') != -1
       delay: 30
       retries: 20
+
     - pause:
         minutes: 10
-    - name: Restarting internal transformer
-      shell: docker service scale vizix_internaltransformer=0
-      args:
-        chdir: /opt/vizix/
+
     - name: Starting internal transformer
       shell: docker service scale vizix_internaltransformer=1
       args:
         chdir: /opt/vizix/
     - name: Wait until internal transformer is up
       shell: docker service ls | grep internal
-      register: tools_status
-      until: tools_status.stdout.find('1/1') != -1
+      register: tools_status_internal
+      until: tools_status_internal.stdout.find('1/1') != -1
+      delay: 30
+      retries: 20
+    - name: Starting proxySCX
+      shell: docker service scale vizix_proxySCX=1
+      args:
+        chdir: /opt/vizix/
+    - name: Wait until proxySCX is up
+      shell: docker service ls | grep proxySCX
+      register: tools_status_proxyscx
+      until: tools_status_proxyscx.stdout.find('1/1') != -1
+      delay: 30
+      retries: 20
+    - name: Starting reverse-proxy-devices
+      shell: docker service scale vizix_reverse-proxy-devices=1
+      args:
+        chdir: /opt/vizix/
+    - name: Wait until internal transformer is up
+      shell: docker service ls | grep vizix_reverse-proxy-devices
+      register: tools_status_reverse
+      until: tools_status_reverse.stdout.find('1/1') != -1
       delay: 30
       retries: 20
