@@ -39,7 +39,7 @@
       retries: 20
 
     - pause:
-        minutes: 10
+        minutes: 1
 
     - name: Starting internal transformer
       shell: docker service scale vizix_internaltransformer=1
